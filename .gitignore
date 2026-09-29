@@ -36,3 +36,6 @@ Thumbs.db
 # Test and tooling output
 .nyc_output/
 test-results/
+
+# Deployment
+.vercel/

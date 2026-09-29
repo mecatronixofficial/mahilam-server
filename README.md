@@ -53,6 +53,19 @@ Public settings: only keys starting with `school.`, `site.`, `social.` or `publi
 
 Hourly: purge expired refresh sessions. Daily at 00:30 (`TZ`): mark unpaid past-due fees `OVERDUE`. Weekly: prune audit logs older than `AUDIT_RETENTION_DAYS`. If you run more than one instance, set `DISABLE_CRON=true` on all but one.
 
+On Vercel the in-process scheduler is switched off; instead Vercel Cron calls `GET /api/v1/tasks/run` once a day at 00:30 IST (19:00 UTC) and runs all three jobs. It requires `Authorization: Bearer $CRON_SECRET`.
+
+## Deploying to Vercel
+
+`vercel.json` installs with Bun and runs `bun run build` (Prisma generate + Nest build) and serves the compiled app from one serverless function, `api/index.js` -> `src/serverless.ts`. Every path is rewritten to it, so URLs stay `/api/v1/...`. Local development and Docker still use `src/main.ts`; both share `src/app.factory.ts`.
+
+1. Import this repo as a Vercel project (root: this folder). `vercel.json` sets the build and output, so no framework preset is needed.
+2. Set the environment variables from `.env.example`. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `FRONTEND_URL` and `CRON_SECRET`. Use a pooled database URL and `DATABASE_POOL_MAX=1`-`3`.
+3. Run migrations against the production database from your machine or CI: `DATABASE_URL=... bun run prisma:deploy` (and `prisma:seed` once). Builds do not migrate.
+4. Give the API and the frontend custom domains on the same site, for example `api.littlemahilam.in` and `littlemahilam.in`. The session cookies are `SameSite=Lax` and host-only, and `*.vercel.app` counts as a separate site per project, so CMS/CRM sign-in does not work between two `vercel.app` URLs (the public website does).
+
+Limits to know: request bodies are capped at 4.5 MB on Vercel (below the 5 MB image-upload limit), requests time out after 30 s (`maxDuration`), and the in-memory public cache and rate limits are per function instance.
+
 ## Integrations
 
 Fill in the Cloudflare R2, Resend and Meta WhatsApp Cloud API values in `.env` to enable them. Uploaded images are checked by their file signature, not only by their declared type.

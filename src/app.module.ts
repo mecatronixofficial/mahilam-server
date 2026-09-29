@@ -26,7 +26,8 @@ import { AppController } from "./app.controller";
   imports: [
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnv }),
     ThrottlerModule.forRoot([{ name: "default", ttl: Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000), limit: Number(process.env.RATE_LIMIT_MAX || 100) }]),
-    ScheduleModule.forRoot(),
+    // Vercel functions freeze between requests, so in-process timers never fire there; Vercel Cron calls /tasks/run instead.
+    ...(process.env.VERCEL ? [] : [ScheduleModule.forRoot()]),
     PrismaModule,
     PublicCacheModule,
     IntegrationsModule,
