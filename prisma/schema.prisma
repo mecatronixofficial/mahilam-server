@@ -1,0 +1,489 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "cjs"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  VISIT_SCHEDULED
+  VISITED
+  APPLICATION_STARTED
+  ADMISSION_CONFIRMED
+  NOT_INTERESTED
+  CLOSED
+}
+
+enum EnquirySource {
+  WEBSITE
+  WALK_IN
+  PHONE
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+  REFERRAL
+  GOOGLE
+  OTHER
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  LEFT
+  TRANSFERRED
+}
+
+enum AdmissionStatus {
+  APPLICATION
+  DOCUMENT_PENDING
+  VERIFICATION
+  FEE_PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  CHEQUE
+  OTHER
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String
+  passwordHash    String
+  role            Role             @default(STAFF)
+  active          Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  refreshSessions RefreshSession[]
+}
+
+model RefreshSession {
+  id        String   @id @default(uuid())
+  tokenHash String
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model AcademicYear {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  startDate DateTime
+  endDate   DateTime
+  current   Boolean      @default(false)
+  active    Boolean      @default(true)
+  classes   ClassLevel[]
+  createdAt DateTime     @default(now())
+}
+
+model ClassLevel {
+  id             String        @id @default(uuid())
+  name           String
+  code           String        @unique
+  displayOrder   Int           @default(0)
+  active         Boolean       @default(true)
+  academicYearId String?
+  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id])
+  sections       Section[]
+  students       Student[]
+
+  @@index([displayOrder])
+}
+
+model Section {
+  id           String     @id @default(uuid())
+  name         String
+  capacity     Int?
+  room         String?
+  active       Boolean    @default(true)
+  classLevelId String
+  classLevel   ClassLevel @relation(fields: [classLevelId], references: [id], onDelete: Cascade)
+  students     Student[]
+
+  @@index([classLevelId])
+}
+
+model Student {
+  id               String            @id @default(uuid())
+  admissionNumber  String            @unique
+  firstName        String
+  lastName         String?
+  dob              DateTime?
+  gender           String?
+  bloodGroup       String?
+  photoUrl         String?
+  joiningDate      DateTime?
+  phone            String?
+  whatsapp         String?
+  address          String?
+  emergencyContact String?
+  notes            String?
+  status           StudentStatus     @default(ACTIVE)
+  classLevelId     String?
+  classLevel       ClassLevel?       @relation(fields: [classLevelId], references: [id])
+  sectionId        String?
+  section          Section?          @relation(fields: [sectionId], references: [id])
+  guardians        StudentGuardian[]
+  studentFees      StudentFee[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([firstName])
+  @@index([classLevelId])
+  @@index([sectionId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Guardian {
+  id           String            @id @default(uuid())
+  name         String
+  relationship String
+  mobile       String
+  whatsapp     String?
+  email        String?
+  occupation   String?
+  address      String?
+  students     StudentGuardian[]
+  createdAt    DateTime          @default(now())
+}
+
+model StudentGuardian {
+  studentId  String
+  guardianId String
+  primary    Boolean  @default(false)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, guardianId])
+  @@index([guardianId])
+}
+
+model Enquiry {
+  id               String            @id @default(uuid())
+  enquiryNumber    String            @unique
+  parentName       String
+  studentName      String
+  studentDob       DateTime?
+  phone            String
+  whatsapp         String?
+  email            String?
+  interestedClass  String
+  source           EnquirySource     @default(WEBSITE)
+  assignedStaffId  String?
+  nextFollowUpDate DateTime?
+  message          String?
+  notes            String?
+  status           EnquiryStatus     @default(NEW)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  followUps        EnquiryFollowUp[]
+
+  @@index([status])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([nextFollowUpDate])
+}
+
+model EnquiryFollowUp {
+  id            String    @id @default(uuid())
+  enquiryId     String
+  enquiry       Enquiry   @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  contactMethod String
+  staffName     String?
+  notes         String
+  nextFollowUp  DateTime?
+  result        String?
+  createdAt     DateTime  @default(now())
+
+  @@index([enquiryId, createdAt])
+}
+
+model Admission {
+  id                String          @id @default(uuid())
+  applicationNumber String          @unique
+  admissionNumber   String?         @unique
+  enquiryId         String?
+  studentName       String
+  className         String
+  joiningDate       DateTime?
+  status            AdmissionStatus @default(APPLICATION)
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([enquiryId])
+}
+
+model FeeType {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  active        Boolean        @default(true)
+  feeStructures FeeStructure[]
+}
+
+model FeeStructure {
+  id           String    @id @default(uuid())
+  className    String
+  academicYear String
+  amount       Decimal   @db.Decimal(12, 2)
+  dueDate      DateTime?
+  frequency    String
+  mandatory    Boolean   @default(true)
+  feeTypeId    String
+  feeType      FeeType   @relation(fields: [feeTypeId], references: [id])
+
+  @@index([feeTypeId])
+  @@index([className, academicYear])
+}
+
+model StudentFee {
+  id             String        @id @default(uuid())
+  studentId      String
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  label          String
+  originalAmount Decimal       @db.Decimal(12, 2)
+  discount       Decimal       @default(0) @db.Decimal(12, 2)
+  fine           Decimal       @default(0) @db.Decimal(12, 2)
+  paid           Decimal       @default(0) @db.Decimal(12, 2)
+  status         PaymentStatus @default(PENDING)
+  dueDate        DateTime?
+  payments       Payment[]
+
+  @@index([studentId])
+  @@index([status, dueDate])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  receiptNumber String        @unique
+  studentFeeId  String
+  studentFee    StudentFee    @relation(fields: [studentFeeId], references: [id])
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod
+  notes         String?
+  voided        Boolean       @default(false)
+  paidAt        DateTime      @default(now())
+
+  @@index([studentFeeId])
+  @@index([paidAt])
+}
+
+model Announcement {
+  id        String    @id @default(uuid())
+  title     String
+  content   String
+  type      String    @default("GENERAL")
+  imageUrl  String?
+  ctaLabel  String?
+  ctaUrl    String?
+  startDate DateTime?
+  endDate   DateTime?
+  priority  Int       @default(0)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([active, priority])
+}
+
+model Banner {
+  id                String   @id @default(uuid())
+  title             String
+  subtitle          String?
+  desktopImage      String?
+  mobileImage       String?
+  ctaLabel          String?
+  ctaLink           String?
+  secondaryCtaLabel String?
+  secondaryCtaLink  String?
+  displayOrder      Int      @default(0)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([active, displayOrder])
+}
+
+model Program {
+  id                  String  @id @default(uuid())
+  name                String
+  slug                String  @unique
+  ageGroup            String?
+  description         String?
+  detailedDescription String?
+  coverImage          String?
+  displayOrder        Int     @default(0)
+  active              Boolean @default(true)
+}
+
+model Facility {
+  id           String  @id @default(uuid())
+  title        String
+  description  String?
+  image        String?
+  icon         String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+}
+
+model Activity {
+  id           String  @id @default(uuid())
+  name         String
+  slug         String  @unique
+  description  String?
+  image        String?
+  benefits     String?
+  displayOrder Int     @default(0)
+  active       Boolean @default(true)
+}
+
+model GalleryAlbum {
+  id       String        @id @default(uuid())
+  title    String
+  slug     String        @unique
+  category String?
+  active   Boolean       @default(true)
+  items    GalleryItem[]
+}
+
+model GalleryItem {
+  id           String       @id @default(uuid())
+  albumId      String
+  album        GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  caption      String?
+  altText      String?
+  displayOrder Int          @default(0)
+  active       Boolean      @default(true)
+
+  @@index([albumId, displayOrder])
+}
+
+model BlogPost {
+  id             String     @id @default(uuid())
+  title          String
+  slug           String     @unique
+  excerpt        String?
+  content        String
+  coverImage     String?
+  author         String?
+  category       String?
+  tags           String[]
+  seoTitle       String?
+  seoDescription String?
+  status         BlogStatus @default(DRAFT)
+  publishedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Testimonial {
+  id               String  @id @default(uuid())
+  parentName       String
+  location         String?
+  mobile           String?
+  email            String?
+  subject          String?
+  studentReference String?
+  photo            String?
+  rating           Int     @default(5)
+  testimonial      String
+  featured         Boolean @default(false)
+  displayOrder     Int     @default(0)
+  active           Boolean @default(true)
+
+  @@index([active, featured, displayOrder])
+}
+
+model SchoolEvent {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  coverImage  String?
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  startTime   String?
+  venue       String?
+  category    String?
+  active      Boolean   @default(true)
+  featured    Boolean   @default(false)
+
+  @@index([active, startDate])
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  module    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([module, createdAt])
+  @@index([userId])
+}
+
+// Atomic per-year counters for human-readable numbers (enquiry, student, admission, receipt).
+model Sequence {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}

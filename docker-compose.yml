@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: little_mahilam
+    ports:
+      - "5432:5432"
+    volumes:
+      - little_mahilam_pg:/var/lib/postgresql/data
+  prisma-migrate:
+    image: node:24-bookworm
+    profiles: ["tools"]
+    working_dir: /app
+    env_file: .env
+    volumes:
+      - ./:/app
+      - prisma_node_modules:/app/node_modules
+    entrypoint: ["sh", "-c"]
+    command:
+      - npm install --ignore-scripts && npx prisma migrate dev --name "$${MIGRATION_NAME:-init}"
+volumes:
+  little_mahilam_pg:
+  prisma_node_modules:
