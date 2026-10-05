@@ -20,6 +20,7 @@ import { StaffModule } from "./staff/staff.module";
 import { ReportsModule } from "./reports/reports.module";
 import { IntegrationsModule } from "./integrations/integrations.module";
 import { TasksModule } from "./tasks/tasks.module";
+import { NewsletterModule } from "./newsletter/newsletter.module";
 import { AppController } from "./app.controller";
 
 @Module({
@@ -41,6 +42,7 @@ import { AppController } from "./app.controller";
     StaffModule,
     ReportsModule,
     TasksModule,
+    NewsletterModule,
   ],
   controllers: [AppController],
   providers: [

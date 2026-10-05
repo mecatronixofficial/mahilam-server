@@ -481,6 +481,18 @@ model AuditLog {
   @@index([userId])
 }
 
+// Families who asked for school news via the website footer.
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  source    String   @default("FOOTER")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, createdAt])
+}
+
 // Atomic per-year counters for human-readable numbers (enquiry, student, admission, receipt).
 model Sequence {
   key       String   @id
