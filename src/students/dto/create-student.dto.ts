@@ -1,9 +1,9 @@
 import { PartialType } from "@nestjs/swagger";
 import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUrl, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
-import { StudentStatus } from "../../generated/prisma/enums";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
-import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators";
+import { StudentStatus } from "../../generated/prisma/enums.js";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
+import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators.js";
 
 export class CreateStudentDto {
   @IsString() @MinLength(2) @MaxLength(60) firstName!: string;

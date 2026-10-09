@@ -1,6 +1,6 @@
 import { Transform } from "class-transformer";
 import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, MaxLength } from "class-validator";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
 
 export class SubscribeDto {
   @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))

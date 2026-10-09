@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "./prisma.service";
+import { PrismaService } from "./prisma.service.js";
 
 export type SequencePrefix = "ENQ" | "STU" | "ADM" | "RCP";
 

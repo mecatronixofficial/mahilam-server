@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { AcademicsService } from "./academics.service";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { AcademicsService } from "./academics.service.js";
 import {
   CreateAcademicYearDto,
   CreateClassLevelDto,
@@ -9,7 +9,7 @@ import {
   UpdateAcademicYearDto,
   UpdateClassLevelDto,
   UpdateSectionDto,
-} from "./dto/academics.dto";
+} from "./dto/academics.dto.js";
 
 @ApiTags("academics")
 @Controller("academics")

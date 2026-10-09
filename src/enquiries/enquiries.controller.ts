@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator";
-import { EnquiriesService } from "./enquiries.service";
-import { CreateEnquiryDto, CreateFollowUpDto, CreateInternalEnquiryDto, EnquiryQueryDto, UpdateEnquiryDto } from "./dto/create-enquiry.dto";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { EnquiriesService } from "./enquiries.service.js";
+import { CreateEnquiryDto, CreateFollowUpDto, CreateInternalEnquiryDto, EnquiryQueryDto, UpdateEnquiryDto } from "./dto/create-enquiry.dto.js";
 
 @ApiTags("enquiries")
 @Controller("enquiries")

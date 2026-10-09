@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { PublicCacheService } from "../common/cache/public-cache.service";
-import { Prisma } from "../generated/prisma/client";
-import { BlogStatus } from "../generated/prisma/enums";
-import { withDates } from "../common/utils/dates";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { PublicCacheService } from "../common/cache/public-cache.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { BlogStatus } from "../generated/prisma/enums.js";
+import { withDates } from "../common/utils/dates.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
 import type {
   ActivityDto,
   AnnouncementDto,
@@ -28,8 +28,8 @@ import type {
   UpdateGalleryItemDto,
   UpdateProgramDto,
   UpdateTestimonialDto,
-} from "./dto/cms.dto";
-import type { CreatePublicTestimonialDto } from "./dto/create-public-testimonial.dto";
+} from "./dto/cms.dto.js";
+import type { CreatePublicTestimonialDto } from "./dto/create-public-testimonial.dto.js";
 
 /** Setting keys with these prefixes are safe to expose on the public website. */
 const PUBLIC_SETTING_PREFIXES = ["school.", "site.", "social.", "public."];

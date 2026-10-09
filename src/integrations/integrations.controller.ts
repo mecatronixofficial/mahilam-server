@@ -2,9 +2,9 @@ import { BadRequestException, Controller, Get, Post, UploadedFile, UseIntercepto
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiConsumes, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { NotificationsService } from "./notifications.service";
-import { MAX_IMAGE_BYTES, StorageService } from "./storage.service";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { NotificationsService } from "./notifications.service.js";
+import { MAX_IMAGE_BYTES, StorageService } from "./storage.service.js";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 

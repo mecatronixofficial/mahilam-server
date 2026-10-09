@@ -1,8 +1,8 @@
 import { Transform } from "class-transformer";
 import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
-import { Role } from "../../generated/prisma/enums";
-import { PASSWORD_MESSAGE, PASSWORD_RULE } from "../../auth/dto/login.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
+import { Role } from "../../generated/prisma/enums.js";
+import { PASSWORD_MESSAGE, PASSWORD_RULE } from "../../auth/dto/login.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
 
 const normaliseEmail = Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value));
 const STAFF_ROLES = [Role.STAFF, Role.ADMIN];

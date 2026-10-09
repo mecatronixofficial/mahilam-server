@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { SequenceService } from "../prisma/sequence.service";
-import { Prisma } from "../generated/prisma/client";
-import { withDates } from "../common/utils/dates";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
-import { CreateGuardianDto, CreateStudentDto, StudentQueryDto, UpdateGuardianDto, UpdateStudentDto } from "./dto/create-student.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SequenceService } from "../prisma/sequence.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { withDates } from "../common/utils/dates.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
+import { CreateGuardianDto, CreateStudentDto, StudentQueryDto, UpdateGuardianDto, UpdateStudentDto } from "./dto/create-student.dto.js";
 
 const DATE_FIELDS = ["dob", "joiningDate"];
 const CLASS_INCLUDE = {

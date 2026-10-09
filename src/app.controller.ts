@@ -1,7 +1,7 @@
 import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
-import { PrismaService } from "./prisma/prisma.service";
+import { PrismaService } from "./prisma/prisma.service.js";
 
 @ApiTags("health")
 @Controller("health")

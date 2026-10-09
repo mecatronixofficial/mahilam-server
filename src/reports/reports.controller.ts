@@ -1,9 +1,9 @@
 import { Controller, Get, Query, Res } from "@nestjs/common";
 import { ApiProduces, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { ReportsService } from "./reports.service";
-import { AuditQueryDto, RangeQueryDto } from "./dto/reports.dto";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { ReportsService } from "./reports.service.js";
+import { AuditQueryDto, RangeQueryDto } from "./dto/reports.dto.js";
 
 @ApiTags("reports")
 @Controller("reports")

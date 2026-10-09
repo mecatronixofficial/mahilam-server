@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { StudentsService } from "./students.service";
-import { CreateGuardianDto, CreateStudentDto, StudentQueryDto, UpdateGuardianDto, UpdateStudentDto } from "./dto/create-student.dto";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { StudentsService } from "./students.service.js";
+import { CreateGuardianDto, CreateStudentDto, StudentQueryDto, UpdateGuardianDto, UpdateStudentDto } from "./dto/create-student.dto.js";
 
 @ApiTags("students")
 @Controller("students")

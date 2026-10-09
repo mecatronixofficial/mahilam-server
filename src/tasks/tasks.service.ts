@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { PrismaService } from "../prisma/prisma.service";
-import { FeesService } from "../fees/fees.service";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { FeesService } from "../fees/fees.service.js";
 
 const AUDIT_RETENTION_DAYS = Number(process.env.AUDIT_RETENTION_DAYS || 365);
 

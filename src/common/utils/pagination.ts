@@ -1,4 +1,4 @@
-import type { ListQueryDto } from "../dto/list-query.dto";
+import type { ListQueryDto } from "../dto/list-query.dto.js";
 
 const DEFAULT_LIMIT = 25;
 

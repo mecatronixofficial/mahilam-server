@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { Prisma } from "../generated/prisma/client";
-import { AdmissionStatus, EnquiryStatus, PaymentStatus, StudentStatus } from "../generated/prisma/enums";
-import { pageArgs, paginated } from "../common/utils/pagination";
-import { AuditQueryDto, RangeQueryDto } from "./dto/reports.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { AdmissionStatus, EnquiryStatus, PaymentStatus, StudentStatus } from "../generated/prisma/enums.js";
+import { pageArgs, paginated } from "../common/utils/pagination.js";
+import { AuditQueryDto, RangeQueryDto } from "./dto/reports.dto.js";
 
 const OPEN_FEE_STATUSES = [PaymentStatus.PENDING, PaymentStatus.PARTIAL, PaymentStatus.OVERDUE];
 const Decimal = Prisma.Decimal;

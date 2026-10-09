@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { SequenceService } from "../prisma/sequence.service";
-import { NotificationsService } from "../integrations/notifications.service";
-import { Prisma } from "../generated/prisma/client";
-import { EnquiryStatus } from "../generated/prisma/enums";
-import { toDate, withDates } from "../common/utils/dates";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
-import { CreateEnquiryDto, CreateFollowUpDto, CreateInternalEnquiryDto, EnquiryQueryDto, UpdateEnquiryDto } from "./dto/create-enquiry.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SequenceService } from "../prisma/sequence.service.js";
+import { NotificationsService } from "../integrations/notifications.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { EnquiryStatus } from "../generated/prisma/enums.js";
+import { toDate, withDates } from "../common/utils/dates.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
+import { CreateEnquiryDto, CreateFollowUpDto, CreateInternalEnquiryDto, EnquiryQueryDto, UpdateEnquiryDto } from "./dto/create-enquiry.dto.js";
 
 const DATE_FIELDS = ["studentDob", "nextFollowUpDate"];
 

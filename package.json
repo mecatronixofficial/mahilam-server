@@ -1,12 +1,14 @@
 {
   "name": "little-mahilam-backend",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "build": "prisma generate && nest build",
+    "start": "tsc -p tsconfig.build.json && bun dist/main.js",
+    "start:dev": "bun scripts/dev.cjs",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:check": "bun scripts/check-db.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -50,6 +52,6 @@
     "@types/pg": "^8.23.1"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": "24.x"
   }
 }

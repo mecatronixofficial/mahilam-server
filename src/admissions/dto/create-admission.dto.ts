@@ -1,8 +1,8 @@
 import { PartialType } from "@nestjs/swagger";
 import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from "class-validator";
-import { AdmissionStatus } from "../../generated/prisma/enums";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
+import { AdmissionStatus } from "../../generated/prisma/enums.js";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
 
 export class CreateAdmissionDto {
   @IsString() @MinLength(2) @MaxLength(120) studentName!: string;

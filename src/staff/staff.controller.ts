@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator";
-import { StaffService } from "./staff.service";
-import { CreateStaffDto, UpdateStaffDto } from "./dto/create-staff.dto";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { StaffService } from "./staff.service.js";
+import { CreateStaffDto, UpdateStaffDto } from "./dto/create-staff.dto.js";
 
 @ApiTags("staff")
 @Controller("staff")

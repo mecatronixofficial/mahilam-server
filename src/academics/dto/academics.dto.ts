@@ -1,7 +1,7 @@
 import { PartialType } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
-import { Nullable } from "../../common/decorators/nullable.decorator";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
 
 export class CreateAcademicYearDto {
   @IsString() @Matches(/^\d{4}-\d{4}$/, { message: "name must look like 2026-2027" }) name!: string;

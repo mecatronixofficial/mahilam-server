@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { createApp } from "./app.factory";
+import { createApp } from "./app.factory.js";
 
 type Handler = (req: Request, res: Response) => void;
 

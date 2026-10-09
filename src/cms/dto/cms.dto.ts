@@ -1,11 +1,11 @@
 import { PartialType } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsDefined, IsEmail, IsEnum, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
-import { BlogStatus } from "../../generated/prisma/enums";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
-import { slugify } from "../../common/utils/slug";
-import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators";
+import { BlogStatus } from "../../generated/prisma/enums.js";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
+import { slugify } from "../../common/utils/slug.js";
+import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators.js";
 
 /** Normalises whatever the admin typed ("My Album!") into a URL-safe slug ("my-album"). */
 const Slug = () => Transform(({ value }) => (typeof value === "string" ? slugify(value) : value));

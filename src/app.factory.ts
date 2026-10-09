@@ -5,8 +5,8 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import { AppModule } from "./app.module";
-import { authCookieNames } from "./auth/auth.constants";
+import { AppModule } from "./app.module.js";
+import { authCookieNames } from "./auth/auth.constants.js";
 
 /** Builds the fully configured app. Shared by the long-running server (main.ts) and the Vercel function (serverless.ts). */
 export async function createApp() {

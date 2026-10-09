@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { SequenceService } from "../prisma/sequence.service";
-import { Prisma } from "../generated/prisma/client";
-import { PaymentStatus, StudentStatus } from "../generated/prisma/enums";
-import { toDate, withDates } from "../common/utils/dates";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SequenceService } from "../prisma/sequence.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { PaymentStatus, StudentStatus } from "../generated/prisma/enums.js";
+import { toDate, withDates } from "../common/utils/dates.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
 import {
   CreateFeeStructureDto,
   CreateFeeTypeDto,
@@ -15,7 +15,7 @@ import {
   UpdateFeeStructureDto,
   UpdateFeeTypeDto,
   UpdateStudentFeeDto,
-} from "./dto/create-fee.dto";
+} from "./dto/create-fee.dto.js";
 
 const Decimal = Prisma.Decimal;
 type Amounts = { originalAmount: Prisma.Decimal; discount: Prisma.Decimal; fine: Prisma.Decimal; paid: Prisma.Decimal; dueDate: Date | null };

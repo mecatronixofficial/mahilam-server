@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { FeesService } from "./fees.service";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { FeesService } from "./fees.service.js";
 import {
   CreateFeeStructureDto,
   CreateFeeTypeDto,
@@ -13,7 +13,7 @@ import {
   UpdateFeeTypeDto,
   UpdateStudentFeeDto,
   VoidPaymentDto,
-} from "./dto/create-fee.dto";
+} from "./dto/create-fee.dto.js";
 
 // Static routes (payments, types, structures) are declared before ":id" so they are matched first.
 @ApiTags("fees")

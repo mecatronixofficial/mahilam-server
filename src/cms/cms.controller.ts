@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AdminOnly, Auth } from "../common/decorators/auth.decorator";
-import { CmsService } from "./cms.service";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { CmsService } from "./cms.service.js";
 import {
   ActivityDto,
   AnnouncementDto,
@@ -26,7 +26,7 @@ import {
   UpdateGalleryItemDto,
   UpdateProgramDto,
   UpdateTestimonialDto,
-} from "./dto/cms.dto";
+} from "./dto/cms.dto.js";
 
 const ok = <T>(data: T) => ({ success: true, data });
 const done = () => ({ success: true });

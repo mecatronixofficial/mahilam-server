@@ -1,10 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
-import { PrismaService } from "../prisma/prisma.service";
-import { Role } from "../generated/prisma/enums";
-import { BCRYPT_ROUNDS } from "../auth/auth.service";
-import type { AuthUser } from "../common/decorators/current-user.decorator";
-import { CreateStaffDto, UpdateStaffDto } from "./dto/create-staff.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { Role } from "../generated/prisma/enums.js";
+import { BCRYPT_ROUNDS } from "../auth/auth.service.js";
+import type { AuthUser } from "../common/decorators/current-user.decorator.js";
+import { CreateStaffDto, UpdateStaffDto } from "./dto/create-staff.dto.js";
 
 const staffSelect = { id: true, name: true, email: true, role: true, active: true, createdAt: true };
 
