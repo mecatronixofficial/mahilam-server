@@ -2,11 +2,11 @@ import { Body, Controller, Get, HttpCode, Post, Req, Res } from "@nestjs/common"
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { Request, Response } from "express";
-import { Auth } from "../common/decorators/auth.decorator";
-import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator";
-import { authCookieNames, authCookieOptions } from "./auth.constants";
-import { ACCESS_TTL_MS, AuthService, REFRESH_TTL_MS } from "./auth.service";
-import { ChangePasswordDto, LoginDto } from "./dto/login.dto";
+import { Auth } from "../common/decorators/auth.decorator.js";
+import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { authCookieNames, authCookieOptions } from "./auth.constants.js";
+import { ACCESS_TTL_MS, AuthService, REFRESH_TTL_MS } from "./auth.service.js";
+import { ChangePasswordDto, LoginDto } from "./dto/login.dto.js";
 
 const AUTH_LIMIT = { default: { limit: 10, ttl: 60_000 } };
 

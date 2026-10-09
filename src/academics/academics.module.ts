@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { AcademicsController } from "./academics.controller";
-import { AcademicsService } from "./academics.service";
+import { AcademicsController } from "./academics.controller.js";
+import { AcademicsService } from "./academics.service.js";
 
 @Module({ controllers: [AcademicsController], providers: [AcademicsService] })
 export class AcademicsModule {}

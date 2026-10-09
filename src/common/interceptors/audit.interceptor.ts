@@ -1,8 +1,8 @@
 import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from "@nestjs/common";
 import type { Request } from "express";
 import { tap } from "rxjs";
-import { PrismaService } from "../../prisma/prisma.service";
-import type { AuthUser } from "../decorators/current-user.decorator";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import type { AuthUser } from "../decorators/current-user.decorator.js";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const SECRET_KEYS = new Set(["password", "currentPassword", "newPassword", "passwordHash", "token"]);

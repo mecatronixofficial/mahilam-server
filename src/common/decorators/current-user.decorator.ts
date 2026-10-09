@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { Role } from "../../generated/prisma/enums";
+import { Role } from "../../generated/prisma/enums.js";
 
 export type AuthUser = { id: string; sub: string; email: string; name: string; role: Role };
 

@@ -57,7 +57,9 @@ On Vercel the in-process scheduler is switched off; instead Vercel Cron calls `G
 
 ## Deploying to Vercel
 
-`vercel.json` installs with Bun and runs `bun run build` (Prisma generate + Nest build) and serves the compiled app from one serverless function, `api/index.js` -> `src/serverless.ts`. Every path is rewritten to it, so URLs stay `/api/v1/...`. Local development and Docker still use `src/main.ts`; both share `src/app.factory.ts`.
+`vercel.json` installs with Bun and runs `bun run build` (Prisma generate + TypeScript build) and serves the compiled app from one serverless function, `api/index.js` -> `src/serverless.ts`. Every path is rewritten to it, so URLs stay `/api/v1/...`. Local development and Docker still use `src/main.ts`; both share `src/app.factory.ts`.
+
+The server, Prisma client and Vercel entry point use native ES modules for NestJS 12 compatibility. `package.json` pins the deployment runtime to Node.js 24.x. After updating an existing project, redeploy with the build cache disabled once to replace the old CommonJS output. Verify `GET /api/v1/health` and `GET /api/v1/cms/public/settings` after deployment.
 
 1. Import this repo as a Vercel project (root: this folder). `vercel.json` sets the build and output, so no framework preset is needed.
 2. Set the environment variables from `.env.example`. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `FRONTEND_URL` and `CRON_SECRET`. Use a pooled database URL and `DATABASE_POOL_MAX=1`-`3`.
@@ -69,6 +71,10 @@ Limits to know: request bodies are capped at 4.5 MB on Vercel (below the 5 MB im
 ## Integrations
 
 Fill in the Cloudflare R2, Resend and Meta WhatsApp Cloud API values in `.env` to enable them. Uploaded images are checked by their file signature, not only by their declared type.
+
+## Database connection troubleshooting
+
+Run `bun run db:check` to test the credentials in `.env` without printing the password. PostgreSQL code `28P01` (Prisma `P1000`) means the database rejected the credentials. Replace `DATABASE_URL` with the current connection URI from the database provider and restart `bun run start:dev`. When assembling a URI manually, percent-encode special characters in the username and password. Keep the provider's SSL parameters. Applying migrations does not fix rejected credentials.
 
 ## Prisma migration on Windows Application Control
 

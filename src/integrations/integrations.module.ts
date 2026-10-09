@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { IntegrationsController } from "./integrations.controller";
-import { NotificationsService } from "./notifications.service";
-import { StorageService } from "./storage.service";
+import { IntegrationsController } from "./integrations.controller.js";
+import { NotificationsService } from "./notifications.service.js";
+import { StorageService } from "./storage.service.js";
 
 @Module({
   controllers: [IntegrationsController],

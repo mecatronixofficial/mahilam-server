@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import { createApp } from "./app.factory";
+import { createApp } from "./app.factory.js";
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === "production";

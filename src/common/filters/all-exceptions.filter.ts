@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { Prisma } from "../../generated/prisma/client";
+import { Prisma } from "../../generated/prisma/client.js";
 
 /**
  * Normalises every error to `{ success:false, statusCode, message, errors? }`.
@@ -32,6 +32,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       switch (exception.code) {
+        case "P1000":
+        case "P1001":
+        case "P1002":
+        case "P1017":
+          return { status: HttpStatus.SERVICE_UNAVAILABLE, message: "Database is unavailable. Please try again later." };
         case "P2002": {
           const target = (exception.meta as { target?: string[] | string } | undefined)?.target;
           const fields = Array.isArray(target) ? target.join(", ") : target;

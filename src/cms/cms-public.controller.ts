@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Header, Param, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { CmsService } from "./cms.service";
-import { BlogQueryDto, EventQueryDto } from "./dto/cms.dto";
-import { CreatePublicTestimonialDto } from "./dto/create-public-testimonial.dto";
+import { CmsService } from "./cms.service.js";
+import { BlogQueryDto, EventQueryDto } from "./dto/cms.dto.js";
+import { CreatePublicTestimonialDto } from "./dto/create-public-testimonial.dto.js";
 
 /** Lets browsers and CDNs reuse public content briefly; the server also caches it in memory. */
 const PUBLIC_CACHE = "public, max-age=60, stale-while-revalidate=300";

@@ -1,5 +1,5 @@
 import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
 
 export class RangeQueryDto {
   @IsOptional() @IsDateString() from?: string;

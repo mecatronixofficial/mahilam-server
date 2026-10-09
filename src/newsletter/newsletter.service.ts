@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { Prisma } from "../generated/prisma/client";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
-import { SubscribeDto, SubscriberQueryDto, UpdateSubscriberDto } from "./dto/newsletter.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
+import { SubscribeDto, SubscriberQueryDto, UpdateSubscriberDto } from "./dto/newsletter.dto.js";
 
 export type SubscribeStatus = "subscribed" | "already";
 

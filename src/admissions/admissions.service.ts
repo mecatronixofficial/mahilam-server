@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { SequenceService } from "../prisma/sequence.service";
-import { Prisma } from "../generated/prisma/client";
-import { AdmissionStatus, EnquiryStatus } from "../generated/prisma/enums";
-import { toDate, withDates } from "../common/utils/dates";
-import { contains, pageArgs, paginated } from "../common/utils/pagination";
-import { AdmissionQueryDto, ConfirmAdmissionDto, CreateAdmissionDto, UpdateAdmissionDto } from "./dto/create-admission.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SequenceService } from "../prisma/sequence.service.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { AdmissionStatus, EnquiryStatus } from "../generated/prisma/enums.js";
+import { toDate, withDates } from "../common/utils/dates.js";
+import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
+import { AdmissionQueryDto, ConfirmAdmissionDto, CreateAdmissionDto, UpdateAdmissionDto } from "./dto/create-admission.dto.js";
 
 @Injectable()
 export class AdmissionsService {

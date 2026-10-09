@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { AdminOnly } from "../common/decorators/auth.decorator";
-import { NewsletterService } from "./newsletter.service";
-import { SubscribeDto, SubscriberQueryDto, UpdateSubscriberDto } from "./dto/newsletter.dto";
+import { AdminOnly } from "../common/decorators/auth.decorator.js";
+import { NewsletterService } from "./newsletter.service.js";
+import { SubscribeDto, SubscriberQueryDto, UpdateSubscriberDto } from "./dto/newsletter.dto.js";
 
 const MESSAGES = {
   subscribed: "Thank you! You'll now receive school news and updates.",

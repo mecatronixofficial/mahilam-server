@@ -2,7 +2,7 @@ import { Controller, Get, Headers, UnauthorizedException } from "@nestjs/common"
 import { ApiExcludeController } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { timingSafeEqual } from "node:crypto";
-import { TasksService } from "./tasks.service";
+import { TasksService } from "./tasks.service.js";
 
 /** Lets Vercel Cron trigger the housekeeping jobs. Vercel sends `Authorization: Bearer $CRON_SECRET`. */
 @ApiExcludeController()

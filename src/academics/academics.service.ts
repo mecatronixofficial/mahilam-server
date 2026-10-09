@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { StudentStatus } from "../generated/prisma/enums";
-import { withDates } from "../common/utils/dates";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StudentStatus } from "../generated/prisma/enums.js";
+import { withDates } from "../common/utils/dates.js";
 import {
   CreateAcademicYearDto,
   CreateClassLevelDto,
@@ -9,7 +9,7 @@ import {
   UpdateAcademicYearDto,
   UpdateClassLevelDto,
   UpdateSectionDto,
-} from "./dto/academics.dto";
+} from "./dto/academics.dto.js";
 
 const activeStudents = { where: { status: StudentStatus.ACTIVE } };
 

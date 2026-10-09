@@ -1,9 +1,9 @@
 import { PartialType } from "@nestjs/swagger";
 import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
-import { EnquirySource, EnquiryStatus } from "../../generated/prisma/enums";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
-import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators";
+import { EnquirySource, EnquiryStatus } from "../../generated/prisma/enums.js";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
+import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators.js";
 
 /** Public website form. */
 export class CreateEnquiryDto {

@@ -1,9 +1,9 @@
 import { PartialType } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min, MinLength } from "class-validator";
-import { PaymentMethod, PaymentStatus } from "../../generated/prisma/enums";
-import { ListQueryDto } from "../../common/dto/list-query.dto";
-import { Nullable } from "../../common/decorators/nullable.decorator";
+import { PaymentMethod, PaymentStatus } from "../../generated/prisma/enums.js";
+import { ListQueryDto } from "../../common/dto/list-query.dto.js";
+import { Nullable } from "../../common/decorators/nullable.decorator.js";
 
 const money = { maxDecimalPlaces: 2 };
 
