@@ -1,9 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { AdmissionStatus, EnquiryStatus, PaymentStatus, StudentStatus } from "../generated/prisma/enums.js";
 import { pageArgs, paginated } from "../common/utils/pagination.js";
 import { AuditQueryDto, RangeQueryDto } from "./dto/reports.dto.js";
+
+import { schoolDay, schoolDayStart, schoolDayEnd, schoolMonthStart, schoolRange } from "../common/utils/school-time.js";
 
 const OPEN_FEE_STATUSES = [PaymentStatus.PENDING, PaymentStatus.PARTIAL, PaymentStatus.OVERDUE];
 const Decimal = Prisma.Decimal;
@@ -16,17 +18,17 @@ export class ReportsService {
 
   async dashboard() {
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const monthStart = schoolMonthStart(now);
+    const endOfToday = schoolDayEnd();
     const [students, enquiries, admissions, pendingFees, events, totalEnquiries, enquiriesThisMonth, followUpsDue, collected, open] = await Promise.all([
       this.prisma.student.count({ where: { status: StudentStatus.ACTIVE } }),
-      this.prisma.enquiry.count({ where: { status: EnquiryStatus.NEW } }),
-      this.prisma.admission.count({ where: { status: AdmissionStatus.CONFIRMED } }),
+      this.prisma.enquiry.count({ where: { status: { in: [EnquiryStatus.NEW, EnquiryStatus.NEW_ENQUIRY] }, purpose: "ADMISSION", archivedAt: null } }),
+      this.prisma.admission.count({ where: { status: { in: [AdmissionStatus.CONFIRMED, AdmissionStatus.ENROLLED] }, archivedAt: null } }),
       this.prisma.studentFee.count({ where: { status: { in: OPEN_FEE_STATUSES } } }),
       this.prisma.schoolEvent.count({ where: { startDate: { gte: now }, active: true } }),
       this.prisma.enquiry.count(),
       this.prisma.enquiry.count({ where: { createdAt: { gte: monthStart } } }),
-      this.prisma.enquiry.count({ where: { nextFollowUpDate: { lte: endOfToday }, status: { notIn: [EnquiryStatus.ADMISSION_CONFIRMED, EnquiryStatus.NOT_INTERESTED, EnquiryStatus.CLOSED] } } }),
+      this.prisma.enquiry.count({ where: { nextFollowUpDate: { lte: endOfToday }, status: { notIn: [EnquiryStatus.ADMISSION_CONFIRMED, EnquiryStatus.ENROLLED, EnquiryStatus.LOST, EnquiryStatus.REJECTED, EnquiryStatus.NOT_INTERESTED, EnquiryStatus.CLOSED] } } }),
       this.prisma.payment.aggregate({ where: { voided: false, paidAt: { gte: monthStart } }, _sum: { amount: true } }),
       this.prisma.studentFee.aggregate({ where: { status: { in: OPEN_FEE_STATUSES } }, _sum: { originalAmount: true, discount: true, fine: true, paid: true } }),
     ]);
@@ -45,13 +47,13 @@ export class ReportsService {
   }
 
   async enquiries(range: RangeQueryDto) {
-    const where: Prisma.EnquiryWhereInput = { createdAt: dateRange(range) };
+    const where: Prisma.EnquiryWhereInput = { createdAt: dateRange(range), purpose: "ADMISSION", archivedAt: null };
     const [byStatus, bySource, total] = await Promise.all([
       this.prisma.enquiry.groupBy({ by: ["status"], where, _count: { _all: true } }),
       this.prisma.enquiry.groupBy({ by: ["source"], where, _count: { _all: true } }),
       this.prisma.enquiry.count({ where }),
     ]);
-    const converted = byStatus.find((row) => row.status === EnquiryStatus.ADMISSION_CONFIRMED)?._count._all ?? 0;
+    const converted = byStatus.filter(row => row.status === EnquiryStatus.ADMISSION_CONFIRMED || row.status === EnquiryStatus.ENROLLED).reduce((total, row) => total + row._count._all, 0);
     return {
       total,
       conversionRate: total ? Math.round((converted / total) * 1000) / 10 : 0,
@@ -62,7 +64,7 @@ export class ReportsService {
   }
 
   async admissions(range: RangeQueryDto) {
-    const where: Prisma.AdmissionWhereInput = { createdAt: dateRange(range) };
+    const where: Prisma.AdmissionWhereInput = { createdAt: dateRange(range), archivedAt: null };
     const byStatus = await this.prisma.admission.groupBy({ by: ["status"], where, _count: { _all: true } });
     return {
       byStatus: byStatus.map((row) => ({ status: row.status, count: row._count._all })),
@@ -147,14 +149,17 @@ export class ReportsService {
 
   /** Counts (and optionally sums `amount`) per month. Table and column names are fixed literals, never user input. */
   private async monthly(table: "Enquiry" | "Admission" | "Payment", column: "createdAt" | "paidAt", range: RangeQueryDto, withAmount = false): Promise<Monthly[]> {
-    const since = range.from ? new Date(range.from) : new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
-    const until = range.to ? endOfDay(range.to) : new Date();
+    dateRange(range); // Reject inverted ranges consistently.
+    const [year, month] = schoolDay().split("-").map(Number);
+    const start = schoolDayStart(new Date(Date.UTC(year, month - 12, 1)).toISOString().slice(0, 10));
+    const since = range.from ? schoolRange(range.from) : start;
+    const until = range.to ? schoolRange(range.to, true) : new Date();
     const col = Prisma.raw(`"${column}"`);
     const tbl = Prisma.raw(`"${table}"`);
     const amount = withAmount ? Prisma.sql`, COALESCE(SUM("amount"), 0) AS total` : Prisma.empty;
-    const voided = table === "Payment" ? Prisma.sql`AND "voided" = false` : Prisma.empty;
+    const voided = table === "Payment" ? Prisma.sql`AND "voided" = false` : table === "Enquiry" ? Prisma.sql`AND "purpose" = 'ADMISSION' AND "archivedAt" IS NULL` : Prisma.sql`AND "archivedAt" IS NULL`;
     const rows = await this.prisma.$queryRaw<{ month: string; count: number; total?: Prisma.Decimal }[]>`
-      SELECT to_char(date_trunc('month', ${col}), 'YYYY-MM') AS month, COUNT(*)::int AS count ${amount}
+      SELECT to_char(date_trunc('month', ${col} + INTERVAL '5 hours 30 minutes'), 'YYYY-MM') AS month, COUNT(*)::int AS count ${amount}
       FROM ${tbl}
       WHERE ${col} >= ${since} AND ${col} <= ${until} ${voided}
       GROUP BY 1 ORDER BY 1`;
@@ -184,17 +189,14 @@ function sumFees(acc: FeeSums, row: { _sum: FeeSums }): FeeSums {
 
 function dateRange(range: RangeQueryDto) {
   if (!range.from && !range.to) return undefined;
-  return { gte: range.from ? new Date(range.from) : undefined, lte: range.to ? endOfDay(range.to) : undefined };
-}
-
-function endOfDay(value: string) {
-  const date = new Date(value);
-  date.setUTCHours(23, 59, 59, 999);
-  return date;
+  const gte = range.from ? schoolRange(range.from) : undefined;
+  const lte = range.to ? schoolRange(range.to, true) : undefined;
+  if (gte && lte && gte > lte) throw new BadRequestException("From date must not be after to date");
+  return { gte, lte };
 }
 
 function day(date: Date | null | undefined) {
-  return date ? date.toISOString().slice(0, 10) : "";
+  return date ? schoolDay(date) : "";
 }
 
 /** RFC 4180 CSV with a BOM for Excel. Cells that start like a formula are prefixed so spreadsheets don't execute them. */

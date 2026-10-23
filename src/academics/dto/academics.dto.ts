@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import { PartialType } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
@@ -14,18 +15,19 @@ export class CreateAcademicYearDto {
 export class UpdateAcademicYearDto extends PartialType(CreateAcademicYearDto) {}
 
 export class CreateClassLevelDto {
-  @IsString() @MinLength(1) @MaxLength(60) name!: string;
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value) @IsString() @MinLength(1) @MaxLength(60) name!: string;
   @IsString() @Matches(/^[A-Z0-9-]{1,30}$/, { message: "code may only contain uppercase letters, numbers and hyphens" }) code!: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) displayOrder?: number;
   @IsOptional() @IsBoolean() active?: boolean;
   @Nullable() @IsUUID() academicYearId?: string | null;
+  @Nullable() @Type(() => Number) @IsInt() @Min(1) @Max(1000) capacity?: number | null;
 }
 
 export class UpdateClassLevelDto extends PartialType(CreateClassLevelDto) {}
 
 export class CreateSectionDto {
   @IsUUID() classLevelId!: string;
-  @IsString() @MinLength(1) @MaxLength(30) name!: string;
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value) @IsString() @MinLength(1) @MaxLength(30) name!: string;
   @Nullable() @Type(() => Number) @IsInt() @Min(1) @Max(500) capacity?: number | null;
   @Nullable() @IsString() @MaxLength(40) room?: string | null;
   @IsOptional() @IsBoolean() active?: boolean;

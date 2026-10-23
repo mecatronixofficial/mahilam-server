@@ -1,6 +1,6 @@
 # Little Mahilam Backend
 
-NestJS 12 + PostgreSQL + Prisma 7 backend for the Little Mahilam Preschool public website, CMS and CRM.
+NestJS 11 + PostgreSQL + Prisma 7 backend for the Little Mahilam Preschool public website, CMS and CRM.
 
 ## Setup
 
@@ -59,7 +59,7 @@ On Vercel the in-process scheduler is switched off; instead Vercel Cron calls `G
 
 `vercel.json` installs with Bun and runs `bun run build` (Prisma generate + TypeScript build) and serves the compiled app from one serverless function, `api/index.js` -> `src/serverless.ts`. Every path is rewritten to it, so URLs stay `/api/v1/...`. Local development and Docker still use `src/main.ts`; both share `src/app.factory.ts`.
 
-The server, Prisma client and Vercel entry point use native ES modules for NestJS 12 compatibility. `package.json` pins the deployment runtime to Node.js 24.x. After updating an existing project, redeploy with the build cache disabled once to replace the old CommonJS output. Verify `GET /api/v1/health` and `GET /api/v1/cms/public/settings` after deployment.
+The server, Prisma client and Vercel entry point use native ES modules. Nest packages are pinned to the CommonJS-compatible NestJS 11 line because the Vercel runtime rejects the `require()` call from `@nestjs/throttler` to the ESM-only NestJS 12 packages. Keep these package versions and `bun.lock` in sync. `package.json` pins the deployment runtime to Node.js 24.x. After updating an existing project, redeploy with the build cache disabled once to replace the old CommonJS output. Verify `GET /api/v1/health` and `GET /api/v1/cms/public/settings` after deployment.
 
 1. Import this repo as a Vercel project (root: this folder). `vercel.json` sets the build and output, so no framework preset is needed.
 2. Set the environment variables from `.env.example`. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `FRONTEND_URL` and `CRON_SECRET`. Use a pooled database URL and `DATABASE_POOL_MAX=1`-`3`.
@@ -74,7 +74,13 @@ Fill in the Cloudflare R2, Resend and Meta WhatsApp Cloud API values in `.env` t
 
 ## Database connection troubleshooting
 
-Run `bun run db:check` to test the credentials in `.env` without printing the password. PostgreSQL code `28P01` (Prisma `P1000`) means the database rejected the credentials. Replace `DATABASE_URL` with the current connection URI from the database provider and restart `bun run start:dev`. When assembling a URI manually, percent-encode special characters in the username and password. Keep the provider's SSL parameters. Applying migrations does not fix rejected credentials.
+Run `bun run db:check` to test the API's effective `DATABASE_URL` without printing credentials. As in the API, an inherited environment variable takes precedence over `.env`.
+
+`Can't reach database server` (Prisma `P1001`) indicates a connectivity failure. Check that the provider's service is running, the hostname and port match its current connection URI, and your network/firewall and provider IP allow-list permit access. The diagnostic distinguishes DNS, timeout/refused-connection, credential and TLS errors. If a later check succeeds, the earlier failure may have been temporary; a successful check cannot establish the cause of a past outage.
+
+PostgreSQL code `28P01` (Prisma `P1000`) means the database rejected the credentials. Replace `DATABASE_URL` with the current connection URI from the database provider and restart `bun run start:dev`. When assembling a URI manually, percent-encode special characters in the username and password. Keep the provider's SSL parameters. Applying migrations does not fix rejected credentials or connectivity failures.
+
+Startup executes `SELECT 1` through Prisma before the API reports that it has started. The pg adapter opens connections lazily, so `$connect()` alone does not prove PostgreSQL is reachable. A later database outage is still possible; `GET /api/v1/health/ready` checks current connectivity.
 
 ## Prisma migration on Windows Application Control
 
@@ -90,3 +96,33 @@ The container reads `DATABASE_URL` from `.env` and writes the generated migratio
 ## Prisma 7 note
 
 This backend uses Prisma 7 with `prisma.config.ts`, the generated `prisma-client`, and the PostgreSQL driver adapter (`@prisma/adapter-pg`).
+
+## School CRM release and integration verification
+
+The CRM reuses the existing NestJS modules, Prisma/PostgreSQL adapter and cookie JWT sessions. The public form enters Enquiry with purpose ADMISSION or CONTACT; scheduled follow-ups use FollowUpTask while EnquiryFollowUp remains a retained contact log. Enrollment and financial changes lock linked rows and commit critical audit records atomically.
+
+Pending school migrations, as checked read-only on 22 October 2026: 20261009120000_add_learning_photos and 20261022090000_complete_school_crm. The latter is additive and transactional, preserves old enum values, and rejects conflicting current-year/application/primary-guardian history instead of deleting it. New private files are stored in authenticated database records, never public R2 URLs. Complete source and verification evidence are in ../../UI/mahilam-ui/SCHOOL_CRM_AUDIT_AND_COMPLETION.md.
+
+For release, preserve a recoverable backup and rehearse on a restored copy, inspect the preflight output, apply reviewed pending migrations with bun run prisma:deploy, deploy this backend, and then release the matching frontend. Builds do not migrate. Do not reset or seed the school database to enable the CRM. Legacy drafts must receive factual class/year/consent/document details before submission.
+
+The regular test command builds before running all existing and new tests:
+
+~~~powershell
+bun run typecheck
+bun run test
+~~~
+
+The PostgreSQL workflow is opt-in. Supply a NEW EMPTY disposable local database each run:
+
+~~~powershell
+$env:CRM_TEST_DATABASE_URL='<local PostgreSQL URL with database mahilam_crm_test_unique>'
+bun run test
+~~~
+
+The integration harness explicitly rejects remote hosts, names without the mahilam_crm_test_ prefix, and nonempty public schemas. It never falls back to DATABASE_URL, resets an existing database, or seeds school records. It deploys all migrations, tests actual persistence/concurrent enrollment/concurrent void/forced rollback, verifies CMS publishing and cache invalidation, guardians, attendance, academics, fees/settings/staff, and leaves synthetic fixtures only in the disposable database. With no test URL this one test is skipped, not certified as passing.
+
+The frontend's tests/crm-browser.mjs can then use that migrated synthetic database via CRM_BROWSER_DATABASE_URL. It starts the real API and temporary production frontend/Chrome, forwards browser API requests to that isolated API, and verifies the public form, login, roles, mutations, saved refresh, failed-request rollback and responsive pages. No real parent message is sent; test provider credentials are cleared and cron jobs disabled.
+
+Use bun scripts/crm-readonly-audit.mjs [optional-output-path] for school schema/migration metadata and aggregate compatibility diagnostics. It uses BEGIN READ ONLY and does not output family rows or connection credentials.
+
+Messaging: existing Resend/Meta new-enquiry notifications remain supported. General CRM communication records have RECORDED status; delivery is never asserted without provider evidence. Configure and verify actual production providers separately.

@@ -16,6 +16,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    try {
+      // The pg adapter creates its pool lazily; $connect alone does not contact PostgreSQL.
+      await this.ping();
+    } catch (error) {
+      await this.$disconnect();
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

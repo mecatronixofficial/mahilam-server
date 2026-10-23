@@ -35,7 +35,7 @@ export class AcademicsService {
   }
 
   removeYear(id: string) {
-    return this.prisma.academicYear.delete({ where: { id }, select: { id: true } });
+    return this.prisma.academicYear.update({ where: { id }, data: { active: false, current: false }, select: { id: true } });
   }
 
   classes() {
@@ -50,13 +50,20 @@ export class AcademicsService {
   }
 
   updateClass(id: string, dto: UpdateClassLevelDto) {
-    return this.prisma.classLevel.update({ where: { id }, data: dto });
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "ClassLevel" WHERE "id" = ${id} FOR UPDATE`;
+      const current = await tx.classLevel.findUniqueOrThrow({ where: { id } });
+      const occupied = await tx.student.count({ where: { classLevelId: id, archivedAt: null, status: "ACTIVE" } });
+      if (dto.capacity != null && occupied > dto.capacity) throw new BadRequestException("Class capacity cannot be less than active enrollment");
+      if (dto.academicYearId !== undefined && dto.academicYearId !== current.academicYearId && await tx.student.count({ where: { classLevelId: id } })) throw new BadRequestException("A class with student history cannot move to another academic year");
+      return tx.classLevel.update({ where: { id }, data: dto });
+    });
   }
 
   async removeClass(id: string) {
-    const students = await this.prisma.student.count({ where: { classLevelId: id } });
-    if (students) throw new BadRequestException(`Move or remove the ${students} student(s) in this class first`);
-    await this.prisma.classLevel.delete({ where: { id } });
+    const students = await this.prisma.student.count({ where: { classLevelId: id, archivedAt: null, status: "ACTIVE" } });
+    if (students) throw new BadRequestException(`Reassign the ${students} active student(s) in this class first`);
+    await this.prisma.classLevel.update({ where: { id }, data: { active: false } });
   }
 
   createSection(dto: CreateSectionDto) {
@@ -64,19 +71,31 @@ export class AcademicsService {
   }
 
   updateSection(id: string, dto: UpdateSectionDto) {
-    return this.prisma.section.update({ where: { id }, data: dto });
+    return this.prisma.$transaction(async tx => {
+      const original = await tx.section.findUniqueOrThrow({ where: { id } });
+      await tx.$queryRaw`SELECT "id" FROM "ClassLevel" WHERE "id" = ${original.classLevelId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT "id" FROM "Section" WHERE "id" = ${id} FOR UPDATE`;
+      const occupied = await tx.student.count({ where: { sectionId: id, archivedAt: null, status: "ACTIVE" } });
+      if (dto.capacity != null && occupied > dto.capacity) throw new BadRequestException("Section capacity cannot be less than active enrollment");
+      if (dto.classLevelId && dto.classLevelId !== original.classLevelId && await tx.student.count({ where: { sectionId: id } })) throw new BadRequestException("A section with student history cannot move to another class");
+      return tx.section.update({ where: { id }, data: dto });
+    });
   }
 
   async removeSection(id: string) {
-    const students = await this.prisma.student.count({ where: { sectionId: id } });
-    if (students) throw new BadRequestException(`Move or remove the ${students} student(s) in this section first`);
-    await this.prisma.section.delete({ where: { id } });
+    const students = await this.prisma.student.count({ where: { sectionId: id, archivedAt: null, status: "ACTIVE" } });
+    if (students) throw new BadRequestException(`Reassign the ${students} active student(s) in this section first`);
+    await this.prisma.section.update({ where: { id }, data: { active: false } });
   }
 
   /** Only one academic year can be current at a time. */
   private saveYear(id: string | null, dto: UpdateAcademicYearDto) {
     const data = withDates(dto, ["startDate", "endDate"]);
+    if (dto.active === false) data.current = false;
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('current-academic-year', 0))`;
+      if (dto.current && dto.active === false) throw new BadRequestException("An inactive academic year cannot be current");
+      if (dto.current && id && dto.active !== true && !(await tx.academicYear.findUniqueOrThrow({ where: { id }, select: { active: true } })).active) throw new BadRequestException("Activate the academic year before making it current");
       if (dto.current) await tx.academicYear.updateMany({ where: { current: true, ...(id ? { id: { not: id } } : {}) }, data: { current: false } });
       return id ? tx.academicYear.update({ where: { id }, data }) : tx.academicYear.create({ data });
     });

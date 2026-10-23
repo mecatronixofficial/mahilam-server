@@ -5,7 +5,7 @@ import { PASSWORD_MESSAGE, PASSWORD_RULE } from "../../auth/dto/login.dto.js";
 import { Nullable } from "../../common/decorators/nullable.decorator.js";
 
 const normaliseEmail = Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value));
-const STAFF_ROLES = [Role.STAFF, Role.ADMIN];
+const STAFF_ROLES = [Role.STAFF, Role.ADMIN, Role.ADMISSION_MANAGER, Role.COUNSELLOR, Role.ACCOUNTANT, Role.TEACHER, Role.CMS_EDITOR];
 
 export class CreateStaffDto {
   @IsString() @MinLength(2) @MaxLength(80) name!: string;

@@ -49,6 +49,12 @@ export class CmsPublicController {
     return { success: true, data: await this.s.facilities() };
   }
 
+  @Get("learning-photos")
+  @Header("Cache-Control", PUBLIC_CACHE)
+  async learningPhotos() {
+    return { success: true, data: await this.s.learningPhotos() };
+  }
+
   @Get("activities")
   @Header("Cache-Control", PUBLIC_CACHE)
   async activities() {

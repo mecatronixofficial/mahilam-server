@@ -140,6 +140,16 @@ export class ActivityDto {
 }
 export class UpdateActivityDto extends PartialType(ActivityDto) {}
 
+/** Fixed photo spots on the public Learning Approach page. Keep in sync with the website's admin page. */
+export const LEARNING_PHOTO_SLOTS = ["hero-main", "hero-small", "play-hands-on", "play-together", "play-imagination"] as const;
+export type LearningPhotoSlot = (typeof LEARNING_PHOTO_SLOTS)[number];
+
+export class LearningPhotoDto {
+  @IsString() @MinLength(1) @MaxLength(MAX_URL) imageUrl!: string;
+  @Nullable() @IsString() @MaxLength(300) altText?: string | null;
+  @IsOptional() @IsBoolean() active?: boolean;
+}
+
 export class SettingDto {
   @IsString() @Matches(/^[a-zA-Z0-9_.-]{2,80}$/, { message: "key may only contain letters, numbers, dots, dashes and underscores" }) key!: string;
   @IsDefined() value!: unknown;

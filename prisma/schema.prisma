@@ -14,6 +14,11 @@ enum Role {
   SUPER_ADMIN
   ADMIN
   STAFF
+  ADMISSION_MANAGER
+  COUNSELLOR
+  ACCOUNTANT
+  TEACHER
+  CMS_EDITOR
 }
 
 enum EnquiryStatus {
@@ -26,6 +31,16 @@ enum EnquiryStatus {
   ADMISSION_CONFIRMED
   NOT_INTERESTED
   CLOSED
+  NEW_ENQUIRY
+  QUALIFIED
+  VISIT_COMPLETED
+  DOCUMENTS_PENDING
+  APPLICATION_SUBMITTED
+  APPROVED
+  ENROLLED
+  WAITLISTED
+  REJECTED
+  LOST
 }
 
 enum EnquirySource {
@@ -56,6 +71,11 @@ enum AdmissionStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  DRAFT
+  SUBMITTED
+  APPROVED
+  WAITLISTED
+  ENROLLED
 }
 
 enum PaymentStatus {
@@ -91,6 +111,10 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   refreshSessions RefreshSession[]
+  assignedEnquiries Enquiry[]
+  followUpTasks FollowUpTask[]
+  visits SchoolVisit[]
+  crmTasks CrmTask[]
 }
 
 model RefreshSession {
@@ -114,6 +138,9 @@ model AcademicYear {
   current   Boolean      @default(false)
   active    Boolean      @default(true)
   classes   ClassLevel[]
+  enquiries Enquiry[]
+  admissions Admission[]
+  students Student[]
   createdAt DateTime     @default(now())
 }
 
@@ -125,7 +152,9 @@ model ClassLevel {
   active         Boolean       @default(true)
   academicYearId String?
   academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id])
+  capacity       Int?
   sections       Section[]
+  admissions     Admission[]
   students       Student[]
 
   @@index([displayOrder])
@@ -166,6 +195,12 @@ model Student {
   section          Section?          @relation(fields: [sectionId], references: [id])
   guardians        StudentGuardian[]
   studentFees      StudentFee[]
+  academicYearId   String?
+  academicYear     AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  archivedAt       DateTime?
+  admission        Admission?
+  attendance       AttendanceRecord[]
+  tasks            CrmTask[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -186,6 +221,9 @@ model Guardian {
   occupation   String?
   address      String?
   students     StudentGuardian[]
+  communicationPreferences String[] @default([])
+  consentAt    DateTime?
+  archivedAt   DateTime?
   createdAt    DateTime          @default(now())
 }
 
@@ -219,6 +257,28 @@ model Enquiry {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   followUps        EnquiryFollowUp[]
+  assignedStaff    User? @relation(fields: [assignedStaffId], references: [id], onDelete: Restrict)
+  academicYearId   String?
+  academicYear     AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  normalizedPhone  String?
+  alternatePhone   String?
+  previousSchool   String?
+  preferredVisitAt DateTime?
+  priority         String @default("NORMAL")
+  purpose          String @default("ADMISSION")
+  lostReason       String?
+  consentAt        DateTime?
+  archivedAt       DateTime?
+  admissions       Admission[]
+  activities       EnquiryActivity[]
+  scheduledFollowUps FollowUpTask[]
+  visits           SchoolVisit[]
+  tasks            CrmTask[]
+  communications   CommunicationLog[]
+  attachments      EnquiryAttachment[]
+
+  @@index([assignedStaffId, archivedAt, createdAt])
+  @@index([academicYearId, status])
 
   @@index([status])
   @@index([phone])
@@ -236,6 +296,7 @@ model EnquiryFollowUp {
   nextFollowUp  DateTime?
   result        String?
   createdAt     DateTime  @default(now())
+  archivedAt    DateTime?
 
   @@index([enquiryId, createdAt])
 }
@@ -252,7 +313,32 @@ model Admission {
   notes             String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  enquiry           Enquiry? @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  academicYearId    String?
+  academicYear      AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  classLevelId      String?
+  classLevel        ClassLevel? @relation(fields: [classLevelId], references: [id], onDelete: Restrict)
+  studentId         String? @unique
+  student           Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  childDob          DateTime?
+  parentName        String?
+  phone             String?
+  alternatePhone    String?
+  email             String?
+  address           String?
+  emergencyContact  String?
+  previousSchool    String?
+  consentAt         DateTime?
+  requiredDocuments String[] @default(["BIRTH_CERTIFICATE", "CHILD_PHOTO"])
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  decisionReason    String?
+  archivedAt        DateTime?
+  documents         ApplicationDocument[]
+  tasks             CrmTask[]
 
+  @@index([academicYearId, status])
   @@index([status])
   @@index([createdAt])
   @@index([enquiryId])
@@ -275,6 +361,7 @@ model FeeStructure {
   mandatory    Boolean   @default(true)
   feeTypeId    String
   feeType      FeeType   @relation(fields: [feeTypeId], references: [id])
+  assignedFees StudentFee[]
 
   @@index([feeTypeId])
   @@index([className, academicYear])
@@ -292,6 +379,9 @@ model StudentFee {
   status         PaymentStatus @default(PENDING)
   dueDate        DateTime?
   payments       Payment[]
+  feeStructureId String?
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: Restrict)
+  @@unique([studentId, feeStructureId])
 
   @@index([studentId])
   @@index([status, dueDate])
@@ -368,6 +458,16 @@ model Facility {
   icon         String?
   displayOrder Int     @default(0)
   active       Boolean @default(true)
+}
+
+/// One photo per fixed spot on the public Learning Approach page (e.g. "hero-main"). Empty slots use built-in photos.
+model LearningPhoto {
+  id        String   @id @default(uuid())
+  slot      String   @unique
+  imageUrl  String
+  altText   String?
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
 }
 
 model Activity {
@@ -498,4 +598,169 @@ model Sequence {
   key       String   @id
   value     Int      @default(0)
   updatedAt DateTime @updatedAt
+}
+
+
+enum WorkStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+enum VisitStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model EnquiryActivity {
+  id        String @id @default(uuid())
+  enquiryId String
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  actorId   String?
+  actorName String?
+  type      String
+  summary   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  @@index([enquiryId, createdAt])
+}
+model FollowUpTask {
+  id              String @id @default(uuid())
+  enquiryId       String
+  enquiry         Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  assignedStaffId String
+  assignedStaff   User @relation(fields: [assignedStaffId], references: [id], onDelete: Restrict)
+  dueAt           DateTime
+  method          String
+  priority        String @default("NORMAL")
+  notes           String?
+  outcome         String?
+  status          WorkStatus @default(PENDING)
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([assignedStaffId, status, dueAt])
+  @@index([enquiryId, status, dueAt])
+}
+model VisitSlot {
+  id        String @id @default(uuid())
+  startAt   DateTime @unique
+  endAt     DateTime
+  capacity  Int @default(1)
+  active    Boolean @default(true)
+  visits    SchoolVisit[]
+}
+model SchoolVisit {
+  id              String @id @default(uuid())
+  enquiryId       String
+  enquiry         Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  assignedStaffId String
+  assignedStaff   User @relation(fields: [assignedStaffId], references: [id], onDelete: Restrict)
+  slotId          String?
+  slot            VisitSlot? @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  startAt         DateTime
+  endAt           DateTime
+  status          VisitStatus @default(SCHEDULED)
+  feedback        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tasks           CrmTask[]
+  @@index([assignedStaffId, startAt])
+  @@index([enquiryId, status])
+  @@index([slotId, status])
+}
+model CrmTask {
+  id              String @id @default(uuid())
+  title           String
+  notes           String?
+  dueAt           DateTime
+  priority        String @default("NORMAL")
+  status          WorkStatus @default(PENDING)
+  assignedStaffId String
+  assignedStaff   User @relation(fields: [assignedStaffId], references: [id], onDelete: Restrict)
+  enquiryId       String?
+  enquiry         Enquiry? @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  admissionId     String?
+  admission       Admission? @relation(fields: [admissionId], references: [id], onDelete: Restrict)
+  studentId       String?
+  student         Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  visitId         String?
+  visit           SchoolVisit? @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([assignedStaffId, status, dueAt])
+}
+model ApplicationDocument {
+  id            String @id @default(uuid())
+  admissionId   String
+  admission     Admission @relation(fields: [admissionId], references: [id], onDelete: Restrict)
+  type          String
+  filename      String
+  contentType   String
+  size          Int
+  content       Bytes
+  uploadedById  String
+  createdAt     DateTime @default(now())
+  @@index([admissionId, type])
+}
+model AttendanceRecord {
+  id        String @id @default(uuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  day       DateTime @db.Date
+  status    AttendanceStatus
+  notes     String?
+  markedById String
+  updatedAt DateTime @updatedAt
+  @@unique([studentId, day])
+  @@index([day, status])
+}
+model MessageTemplate {
+  id        String @id @default(uuid())
+  name      String
+  channel   String
+  subject   String?
+  body      String
+  active    Boolean @default(true)
+  updatedAt DateTime @updatedAt
+}
+model CommunicationLog {
+  id           String @id @default(uuid())
+  enquiryId    String
+  enquiry      Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  channel      String
+  subject      String?
+  body         String
+  outcome      String?
+  status       String @default("RECORDED")
+  actorId      String
+  createdAt    DateTime @default(now())
+  @@index([enquiryId, createdAt])
+}
+model CrmSetting {
+  key       String @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model EnquiryAttachment {
+  id           String @id @default(uuid())
+  enquiryId    String
+  enquiry      Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Restrict)
+  filename     String
+  contentType  String
+  size         Int
+  content      Bytes
+  uploadedById String
+  archivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  @@index([enquiryId, createdAt])
 }

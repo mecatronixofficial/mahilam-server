@@ -1,12 +1,13 @@
+import { Transform } from "class-transformer";
 import { PartialType } from "@nestjs/swagger";
-import { IsBoolean, IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUrl, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsIn, IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUrl, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
 import { StudentStatus } from "../../generated/prisma/enums.js";
 import { ListQueryDto } from "../../common/dto/list-query.dto.js";
 import { Nullable } from "../../common/decorators/nullable.decorator.js";
 import { PHONE_MESSAGE, PHONE_PATTERN } from "../../common/validators.js";
 
 export class CreateStudentDto {
-  @IsString() @MinLength(2) @MaxLength(60) firstName!: string;
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value) @IsString() @MinLength(2) @MaxLength(60) firstName!: string;
   @Nullable() @IsString() @MaxLength(60) lastName?: string | null;
   @Nullable() @IsDateString() dob?: string | null;
   @Nullable() @IsString() @MaxLength(20) gender?: string | null;
@@ -19,6 +20,7 @@ export class CreateStudentDto {
   @Nullable() @IsString() @MaxLength(120) emergencyContact?: string | null;
   @Nullable() @IsString() @MaxLength(4000) notes?: string | null;
   @IsOptional() @IsEnum(StudentStatus) status?: StudentStatus;
+  @Nullable() @IsUUID() academicYearId?: string | null;
   @Nullable() @IsUUID() classLevelId?: string | null;
   @Nullable() @IsUUID() sectionId?: string | null;
 }
@@ -26,14 +28,16 @@ export class CreateStudentDto {
 export class UpdateStudentDto extends PartialType(CreateStudentDto) {}
 
 export class StudentQueryDto extends ListQueryDto {
+  @IsOptional() @IsUUID() academicYearId?: string;
+  @IsOptional() @IsIn(["true", "false"]) archived?: "true" | "false";
   @IsOptional() @IsEnum(StudentStatus) status?: StudentStatus;
   @IsOptional() @IsUUID() classLevelId?: string;
   @IsOptional() @IsUUID() sectionId?: string;
 }
 
 export class CreateGuardianDto {
-  @IsString() @MinLength(2) @MaxLength(80) name!: string;
-  @IsString() @MinLength(2) @MaxLength(40) relationship!: string;
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value) @IsString() @MinLength(2) @MaxLength(80) name!: string;
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value) @IsString() @MinLength(2) @MaxLength(40) relationship!: string;
   @IsString() @Matches(PHONE_PATTERN, { message: `mobile ${PHONE_MESSAGE}` }) mobile!: string;
   @Nullable() @IsString() @Matches(PHONE_PATTERN, { message: `whatsapp ${PHONE_MESSAGE}` }) whatsapp?: string | null;
   @Nullable() @IsEmail() @MaxLength(160) email?: string | null;

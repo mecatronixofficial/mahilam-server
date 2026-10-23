@@ -13,7 +13,7 @@ export class StaffService {
   constructor(private prisma: PrismaService) {}
 
   list() {
-    return this.prisma.user.findMany({ where: { role: { in: [Role.STAFF, Role.ADMIN] } }, select: staffSelect, orderBy: { createdAt: "desc" } });
+    return this.prisma.user.findMany({ where: { role: { not: Role.SUPER_ADMIN } }, select: staffSelect, orderBy: { createdAt: "desc" } });
   }
 
   async create(dto: CreateStaffDto, actor: AuthUser) {
@@ -41,7 +41,10 @@ export class StaffService {
   async remove(id: string, actor: AuthUser) {
     if (id === actor.id) throw new BadRequestException("You can't delete your own account");
     await this.assertManageable(id, actor);
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id }, data: { active: false } }),
+      this.prisma.refreshSession.deleteMany({ where: { userId: id } }),
+    ]);
   }
 
   /** Super admins can't be managed here, and admins can only be managed by a super admin. */
