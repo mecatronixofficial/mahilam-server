@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { FeesService } from "./fees.service.js";
 import {
   CreateFeeStructureDto,
@@ -38,14 +39,14 @@ export class FeesController {
   }
 
   @Post("payments")
-  async pay(@Body() dto: CreatePaymentDto) {
-    return { success: true, message: "Payment recorded", data: await this.s.pay(dto) };
+  async pay(@Body() dto: CreatePaymentDto, @CurrentUser() actor: AuthUser) {
+    return { success: true, message: "Payment recorded", data: await this.s.pay(dto, actor) };
   }
 
   @Post("payments/:id/void")
   @AdminOnly()
-  async voidPayment(@Param("id", ParseUUIDPipe) id: string, @Body() dto: VoidPaymentDto) {
-    return { success: true, message: "Payment voided", data: await this.s.voidPayment(id, dto.reason) };
+  async voidPayment(@Param("id", ParseUUIDPipe) id: string, @Body() dto: VoidPaymentDto, @CurrentUser() actor: AuthUser) {
+    return { success: true, message: "Payment voided", data: await this.s.voidPayment(id, dto.reason, actor) };
   }
 
   @Get("types")
@@ -110,8 +111,8 @@ export class FeesController {
 
   @Patch(":id")
   @AdminOnly()
-  async update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateStudentFeeDto) {
-    return { success: true, data: await this.s.update(id, dto) };
+  async update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateStudentFeeDto, @CurrentUser() actor: AuthUser) {
+    return { success: true, data: await this.s.update(id, dto, actor) };
   }
 
   @Delete(":id")

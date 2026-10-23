@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
+import { AuthUser, CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { StudentsService } from "./students.service.js";
 import { CreateGuardianDto, CreateStudentDto, StudentQueryDto, UpdateGuardianDto, UpdateStudentDto } from "./dto/create-student.dto.js";
 
@@ -21,8 +22,8 @@ export class StudentsController {
   }
 
   @Get(":id")
-  async detail(@Param("id", ParseUUIDPipe) id: string) {
-    return { success: true, data: await this.s.detail(id) };
+  async detail(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() actor: AuthUser) {
+    return { success: true, data: await this.s.detail(id, actor) };
   }
 
   @Patch(":id")

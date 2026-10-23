@@ -8,6 +8,7 @@
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun run build && bun test tests/branding.test.ts tests/branding-http.test.mjs tests/crm-contract.test.mjs tests/crm-workflow.test.mjs tests/crm-postgres.test.mjs tests/prisma-startup.test.mjs",
     "db:check": "bun scripts/check-db.cjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -36,7 +37,8 @@
     "helmet": "^8.3.0",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.24",

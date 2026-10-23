@@ -1,6 +1,6 @@
 import { PartialType } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min, MinLength } from "class-validator";
+import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from "class-validator";
 import { PaymentMethod, PaymentStatus } from "../../generated/prisma/enums.js";
 import { ListQueryDto } from "../../common/dto/list-query.dto.js";
 import { Nullable } from "../../common/decorators/nullable.decorator.js";
@@ -10,13 +10,14 @@ const money = { maxDecimalPlaces: 2 };
 export class CreateStudentFeeDto {
   @IsUUID() studentId!: string;
   @IsString() @MinLength(2) @MaxLength(120) label!: string;
-  @Type(() => Number) @IsNumber(money) @Min(0) originalAmount!: number;
-  @IsOptional() @Type(() => Number) @IsNumber(money) @Min(0) discount?: number;
-  @IsOptional() @Type(() => Number) @IsNumber(money) @Min(0) fine?: number;
+  @Type(() => Number) @IsNumber(money) @Min(0) @Max(9999999999.99) originalAmount!: number;
+  @IsOptional() @Type(() => Number) @IsNumber(money) @Min(0) @Max(9999999999.99) discount?: number;
+  @IsOptional() @Type(() => Number) @IsNumber(money) @Min(0) @Max(9999999999.99) fine?: number;
   @Nullable() @IsDateString() dueDate?: string | null;
 }
 
 export class UpdateStudentFeeDto extends PartialType(CreateStudentFeeDto) {
+  @Nullable() @IsString() @MinLength(5) @MaxLength(500) adjustmentReason?: string | null;
   /** Status is derived from the amounts; the only manual override is waiving (or un-waiving) the fee. */
   @IsOptional() @IsBoolean() waive?: boolean;
 }
@@ -28,7 +29,7 @@ export class FeeQueryDto extends ListQueryDto {
 
 export class CreatePaymentDto {
   @IsUUID() studentFeeId!: string;
-  @Type(() => Number) @IsNumber(money) @Min(0.01) amount!: number;
+  @Type(() => Number) @IsNumber(money) @Min(0.01) @Max(9999999999.99) amount!: number;
   @IsEnum(PaymentMethod) method!: PaymentMethod;
   @Nullable() @IsString() @MaxLength(500) notes?: string | null;
   @Nullable() @IsDateString() paidAt?: string | null;
@@ -55,7 +56,7 @@ export class CreateFeeStructureDto {
   @IsUUID() feeTypeId!: string;
   @IsString() @MinLength(1) @MaxLength(60) className!: string;
   @IsString() @MinLength(4) @MaxLength(20) academicYear!: string;
-  @Type(() => Number) @IsNumber(money) @Min(0) amount!: number;
+  @Type(() => Number) @IsNumber(money) @Min(0) @Max(9999999999.99) amount!: number;
   @Nullable() @IsDateString() dueDate?: string | null;
   @IsString() @MinLength(2) @MaxLength(30) frequency!: string;
   @IsOptional() @IsBoolean() mandatory?: boolean;

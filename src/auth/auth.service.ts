@@ -26,7 +26,10 @@ export class AuthService {
   async validate(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     const valid = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
-    if (!user || !user.active || !valid) throw new UnauthorizedException("Invalid email or password");
+    if (!user || !user.active || !valid) {
+      await this.prisma.auditLog.create({ data: { userId: user?.id, module: "auth", action: "LOGIN_FAILED" } });
+      throw new UnauthorizedException("Invalid email or password");
+    }
     return user;
   }
 
@@ -36,7 +39,10 @@ export class AuthService {
       this.jwt.signAsync({ ...identity, type: "access" }, { secret: process.env.JWT_ACCESS_SECRET, expiresIn: ACCESS_TTL_MS / 1000, jwtid: randomUUID() }),
       this.jwt.signAsync({ ...identity, type: "refresh" }, { secret: process.env.JWT_REFRESH_SECRET, expiresIn: REFRESH_TTL_MS / 1000, jwtid: randomUUID() }),
     ]);
-    await this.prisma.refreshSession.create({ data: { userId: user.id, tokenHash: hashToken(refresh), expiresAt: new Date(Date.now() + REFRESH_TTL_MS) } });
+    await this.prisma.$transaction([
+      this.prisma.refreshSession.create({ data: { userId: user.id, tokenHash: hashToken(refresh), expiresAt: new Date(Date.now() + REFRESH_TTL_MS) } }),
+      this.prisma.auditLog.create({ data: { userId: user.id, module: "auth", action: "SESSION_ISSUED" } }),
+    ]);
     return { access, refresh, user: this.toPublic(user) };
   }
 

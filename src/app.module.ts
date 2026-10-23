@@ -22,6 +22,8 @@ import { ReportsModule } from "./reports/reports.module.js";
 import { IntegrationsModule } from "./integrations/integrations.module.js";
 import { TasksModule } from "./tasks/tasks.module.js";
 import { NewsletterModule } from "./newsletter/newsletter.module.js";
+import { BrandingModule } from "./branding/branding.module.js";
+import { CrmModule } from "./crm/crm.module.js";
 import { AppController } from "./app.controller.js";
 
 @Module({
@@ -33,6 +35,7 @@ import { AppController } from "./app.controller.js";
     PrismaModule,
     PublicCacheModule,
     IntegrationsModule,
+    BrandingModule,
     AuthModule,
     EnquiriesModule,
     StudentsModule,
@@ -44,6 +47,7 @@ import { AppController } from "./app.controller.js";
     ReportsModule,
     TasksModule,
     NewsletterModule,
+    CrmModule,
   ],
   controllers: [AppController],
   providers: [

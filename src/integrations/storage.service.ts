@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -37,6 +37,23 @@ export class StorageService {
     return { key, url: `${base}/${key}`, size: file.size, contentType: signature.type };
   }
 
+  async uploadLogo(buffer: Buffer) {
+    if (!this.configured()) throw new ServiceUnavailableException("Cloudflare R2 is not configured");
+    const key = `branding/logos/${randomUUID()}.webp`;
+    await this.s3().send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key, Body: buffer, ContentType: "image/webp", CacheControl: "public, max-age=31536000, immutable" }));
+    return { key, url: `${process.env.R2_PUBLIC_URL!.replace(/\/$/, "")}/${key}` };
+  }
+
+  async verifyLogo(url: string) {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000), redirect: "error" });
+    if (!response.ok || !response.headers.get("content-type")?.startsWith("image/webp")) throw new ServiceUnavailableException("The uploaded logo is not publicly accessible. The previous logo has been retained.");
+  }
+
+  async deleteLogo(key: string) {
+    // Never delete default assets or shared CMS images.
+    if (!/^branding\/logos\/[0-9a-f-]{36}\.webp$/.test(key)) return;
+    await this.s3().send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key }));
+  }
   /** One client per process: it keeps its HTTPS connections alive between uploads. */
   private s3() {
     this.client ??= new S3Client({

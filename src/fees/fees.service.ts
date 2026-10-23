@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import type { AuthUser } from "../common/decorators/current-user.decorator.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { SequenceService } from "../prisma/sequence.service.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { PaymentStatus, StudentStatus } from "../generated/prisma/enums.js";
+import { schoolRange } from "../common/utils/school-time.js";
 import { toDate, withDates } from "../common/utils/dates.js";
 import { contains, pageArgs, paginated } from "../common/utils/pagination.js";
 import {
@@ -70,8 +72,9 @@ export class FeesService {
     return this.prisma.studentFee.create({ data: { studentId: dto.studentId, label: dto.label, ...amounts, status: deriveStatus(amounts) } });
   }
 
-  async update(id: string, dto: UpdateStudentFeeDto) {
-    const { waive, studentId: _ignored, ...changes } = dto;
+  async update(id: string, dto: UpdateStudentFeeDto, actor?: AuthUser) {
+    const { waive, studentId: _ignored, adjustmentReason, ...changes } = dto;
+    if (!adjustmentReason || adjustmentReason.trim().length < 5) throw new BadRequestException("Record a reason for the fee adjustment");
     return this.prisma.$transaction(async (tx) => {
       const fee = await this.lockFee(tx, id);
       const next: Amounts = {
@@ -82,18 +85,23 @@ export class FeesService {
         dueDate: changes.dueDate !== undefined ? (toDate(changes.dueDate) ?? null) : fee.dueDate,
       };
       if (payableOf(next).lt(0)) throw new BadRequestException("Discount cannot exceed the fee amount plus fine");
+      if (payableOf(next).lt(fee.paid)) throw new BadRequestException("The adjusted fee cannot be less than recorded payments");
       const keepWaived = waive ?? fee.status === PaymentStatus.WAIVED;
-      return tx.studentFee.update({
+      const updated = await tx.studentFee.update({
         where: { id },
         data: { label: changes.label, originalAmount: next.originalAmount, discount: next.discount, fine: next.fine, dueDate: next.dueDate, status: keepWaived ? PaymentStatus.WAIVED : deriveStatus(next) },
       });
+      await tx.auditLog.create({ data: { module: "fees", entityId: id, action: "FEE_ADJUSTED", userId: actor?.id, oldValue: { originalAmount: fee.originalAmount.toString(), discount: fee.discount.toString(), fine: fee.fine.toString(), status: fee.status }, newValue: { originalAmount: next.originalAmount.toString(), discount: next.discount.toString(), fine: next.fine.toString(), status: updated.status, reason: adjustmentReason } } });
+      return updated;
     });
   }
 
   async remove(id: string) {
-    const active = await this.prisma.payment.count({ where: { studentFeeId: id, voided: false } });
-    if (active) throw new BadRequestException("Void this fee's payments before deleting it");
-    await this.prisma.$transaction([this.prisma.payment.deleteMany({ where: { studentFeeId: id } }), this.prisma.studentFee.delete({ where: { id } })]);
+    return this.prisma.$transaction(async tx => {
+      await this.lockFee(tx, id);
+      if (await tx.payment.count({ where: { studentFeeId: id } })) throw new BadRequestException("Fees with payment history must be retained; use a waiver or adjustment");
+      await tx.studentFee.delete({ where: { id } });
+    });
   }
 
   // ---- Payments ----
@@ -102,7 +110,7 @@ export class FeesService {
     const search = contains(query.search);
     const where: Prisma.PaymentWhereInput = {
       method: query.method,
-      paidAt: query.from || query.to ? { gte: query.from ? new Date(query.from) : undefined, lte: query.to ? endOfDay(query.to) : undefined } : undefined,
+      paidAt: query.from || query.to ? { gte: query.from ? schoolRange(query.from) : undefined, lte: query.to ? schoolRange(query.to, true) : undefined } : undefined,
       ...(search ? { OR: [{ receiptNumber: search }, { studentFee: { student: { firstName: search } } }, { studentFee: { student: { lastName: search } } }] } : {}),
     };
     return paginated(
@@ -113,7 +121,7 @@ export class FeesService {
   }
 
   /** Records a payment. The fee row is locked so concurrent payments cannot overwrite each other's totals. */
-  pay(dto: CreatePaymentDto) {
+  pay(dto: CreatePaymentDto, actor?: AuthUser) {
     return this.prisma.$transaction(async (tx) => {
       const fee = await this.lockFee(tx, dto.studentFeeId);
       if (fee.status === PaymentStatus.WAIVED) throw new BadRequestException("This fee has been waived");
@@ -125,12 +133,15 @@ export class FeesService {
       const payment = await tx.payment.create({ data: { receiptNumber, studentFeeId: fee.id, amount, method: dto.method, notes: dto.notes, paidAt: toDate(dto.paidAt) ?? undefined } });
       const paid = new Decimal(fee.paid).plus(amount);
       await tx.studentFee.update({ where: { id: fee.id }, data: { paid, status: deriveStatus({ ...fee, paid }) } });
+      await tx.auditLog.create({ data: { module: "fees", entityId: payment.id, action: "PAYMENT_RECORDED", userId: actor?.id, newValue: { receiptNumber, studentFeeId: fee.id, amount: amount.toString() } } });
       return payment;
     });
   }
 
-  voidPayment(id: string, reason?: string | null) {
+  voidPayment(id: string, reason?: string | null, actor?: AuthUser) {
+    if (!reason || reason.trim().length < 5) throw new BadRequestException("Record a reason for voiding the payment");
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${id} FOR UPDATE`;
       const payment = await tx.payment.findUnique({ where: { id } });
       if (!payment) throw new NotFoundException("Payment not found");
       if (payment.voided) throw new BadRequestException("Payment is already voided");
@@ -138,6 +149,7 @@ export class FeesService {
       const paid = Decimal.max(0, new Decimal(fee.paid).minus(payment.amount));
       const notes = [payment.notes, `Voided${reason ? `: ${reason}` : ""}`].filter(Boolean).join(" | ");
       const updated = await tx.payment.update({ where: { id }, data: { voided: true, notes } });
+      await tx.auditLog.create({ data: { module: "fees", entityId: id, action: "PAYMENT_VOIDED", userId: actor?.id, oldValue: { paid: fee.paid.toString() }, newValue: { paid: paid.toString(), reason: reason ?? null, receiptNumber: payment.receiptNumber } } });
       await tx.studentFee.update({ where: { id: fee.id }, data: { paid, status: fee.status === PaymentStatus.WAIVED ? PaymentStatus.WAIVED : deriveStatus({ ...fee, paid }) } });
       return updated;
     });
@@ -162,7 +174,8 @@ export class FeesService {
     return this.prisma.feeType.update({ where: { id }, data: dto });
   }
 
-  removeFeeType(id: string) {
+  async removeFeeType(id: string) {
+    if (await this.prisma.feeStructure.count({ where: { feeTypeId: id } })) throw new BadRequestException("Fee types with structures must be retained; deactivate the type instead");
     return this.prisma.feeType.delete({ where: { id }, select: { id: true } });
   }
 
@@ -178,7 +191,8 @@ export class FeesService {
     return this.prisma.feeStructure.update({ where: { id }, data: withDates(dto, ["dueDate"]), include: { feeType: true } });
   }
 
-  removeFeeStructure(id: string) {
+  async removeFeeStructure(id: string) {
+    if (await this.prisma.studentFee.count({ where: { feeStructureId: id } })) throw new BadRequestException("Assigned fee structures must be retained for financial history");
     return this.prisma.feeStructure.delete({ where: { id }, select: { id: true } });
   }
 
@@ -188,14 +202,15 @@ export class FeesService {
     if (!structure) throw new NotFoundException("Fee structure not found");
     const label = `${structure.feeType.name} (${structure.academicYear})`;
     const students = await this.prisma.student.findMany({
-      where: { status: StudentStatus.ACTIVE, classLevel: { name: { equals: structure.className, mode: "insensitive" } }, studentFees: { none: { label } } },
+      where: { status: StudentStatus.ACTIVE, archivedAt: null, academicYear: { name: structure.academicYear }, classLevel: { name: { equals: structure.className, mode: "insensitive" } }, studentFees: { none: { label } } },
       select: { id: true },
     });
     if (!students.length) return { created: 0, label };
     const amounts = { originalAmount: structure.amount, discount: new Decimal(0), fine: new Decimal(0), paid: new Decimal(0), dueDate: structure.dueDate };
     const status = deriveStatus(amounts);
     const { count } = await this.prisma.studentFee.createMany({
-      data: students.map((s) => ({ studentId: s.id, label, originalAmount: structure.amount, dueDate: structure.dueDate, status })),
+      skipDuplicates: true,
+      data: students.map((s) => ({ studentId: s.id, feeStructureId: id, label, originalAmount: structure.amount, dueDate: structure.dueDate, status })),
     });
     return { created: count, label };
   }

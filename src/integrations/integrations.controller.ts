@@ -17,7 +17,7 @@ export class IntegrationsController {
   ) {}
 
   @Get("status")
-  @AdminOnly()
+  @Auth("ADMIN", "SUPER_ADMIN", "CMS_EDITOR")
   status() {
     return { success: true, data: { cloudflareR2: this.storage.status(), ...this.notifications.status() } };
   }

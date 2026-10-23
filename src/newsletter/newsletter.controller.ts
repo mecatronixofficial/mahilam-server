@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
-import { AdminOnly } from "../common/decorators/auth.decorator.js";
+import { AdminOnly, Auth } from "../common/decorators/auth.decorator.js";
 import { NewsletterService } from "./newsletter.service.js";
 import { SubscribeDto, SubscriberQueryDto, UpdateSubscriberDto } from "./dto/newsletter.dto.js";
 
@@ -23,19 +23,19 @@ export class NewsletterController {
   }
 
   @Get()
-  @AdminOnly()
+  @Auth("ADMIN", "SUPER_ADMIN", "CMS_EDITOR")
   list(@Query() query: SubscriberQueryDto) {
     return this.s.list(query);
   }
 
   @Patch(":id")
-  @AdminOnly()
+  @Auth("ADMIN", "SUPER_ADMIN", "CMS_EDITOR")
   async update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateSubscriberDto) {
     return { success: true, data: await this.s.update(id, dto) };
   }
 
   @Delete(":id")
-  @AdminOnly()
+  @Auth("ADMIN", "SUPER_ADMIN", "CMS_EDITOR")
   async remove(@Param("id", ParseUUIDPipe) id: string) {
     await this.s.remove(id);
     return { success: true };

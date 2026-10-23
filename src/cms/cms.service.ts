@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PublicCacheService } from "../common/cache/public-cache.service.js";
 import { Prisma } from "../generated/prisma/client.js";
@@ -15,6 +15,7 @@ import type {
   FacilityDto,
   GalleryAlbumDto,
   GalleryItemDto,
+  LearningPhotoDto,
   ProgramDto,
   SettingDto,
   TestimonialDto,
@@ -30,6 +31,7 @@ import type {
   UpdateTestimonialDto,
 } from "./dto/cms.dto.js";
 import type { CreatePublicTestimonialDto } from "./dto/create-public-testimonial.dto.js";
+import { LEARNING_PHOTO_SLOTS } from "./dto/cms.dto.js";
 
 /** Setting keys with these prefixes are safe to expose on the public website. */
 const PUBLIC_SETTING_PREFIXES = ["school.", "site.", "social.", "public."];
@@ -90,6 +92,10 @@ export class CmsService {
 
   facilities() {
     return this.cache.get("facilities", () => this.prisma.facility.findMany({ where: { active: true }, orderBy: byOrder }));
+  }
+
+  learningPhotos() {
+    return this.cache.get("learning-photos", () => this.prisma.learningPhoto.findMany({ where: { active: true }, select: { slot: true, imageUrl: true, altText: true } }));
   }
 
   activities() {
@@ -192,6 +198,10 @@ export class CmsService {
 
   allActivities() {
     return this.prisma.activity.findMany({ orderBy: byOrder });
+  }
+
+  allLearningPhotos() {
+    return this.prisma.learningPhoto.findMany({ orderBy: { slot: "asc" } });
   }
 
   settings() {
@@ -309,11 +319,23 @@ export class CmsService {
     return this.write(this.prisma.activity.delete({ where: { id }, select: { id: true } }));
   }
 
+  /** Each slot holds at most one photo, so saving replaces whatever was there. */
+  saveLearningPhoto(slot: string, dto: LearningPhotoDto) {
+    const data = { imageUrl: dto.imageUrl, altText: dto.altText ?? null, active: dto.active ?? true };
+    return this.write(this.prisma.learningPhoto.upsert({ where: { slot: learningSlot(slot) }, update: data, create: { slot: learningSlot(slot), ...data } }));
+  }
+  /** Clearing a slot puts the website's built-in photo back. Clearing an empty slot is fine. */
+  deleteLearningPhoto(slot: string) {
+    return this.write(this.prisma.learningPhoto.deleteMany({ where: { slot: learningSlot(slot) } }));
+  }
+
   saveSetting(dto: SettingDto) {
+    if (dto.key === "branding.logo") throw new BadRequestException("Branding must be changed through the branding API");
     const value = dto.value as Prisma.InputJsonValue;
     return this.write(this.prisma.siteSetting.upsert({ where: { key: dto.key }, update: { value }, create: { key: dto.key, value } }));
   }
   deleteSetting(key: string) {
+    if (key === "branding.logo") throw new BadRequestException("Branding must be changed through the branding API");
     return this.write(this.prisma.siteSetting.delete({ where: { key }, select: { key: true } }));
   }
 
@@ -324,6 +346,11 @@ export class CmsService {
   }
 }
 
+function learningSlot(slot: string) {
+  if (!(LEARNING_PHOTO_SLOTS as readonly string[]).includes(slot)) throw new BadRequestException(`Unknown photo slot "${slot}". Use one of: ${LEARNING_PHOTO_SLOTS.join(", ")}`);
+  return slot;
+}
+
 function orNotFound(label: string) {
   return <T>(row: T | null): T => {
     if (!row) throw new NotFoundException(`${label} not found`);
@@ -331,8 +358,15 @@ function orNotFound(label: string) {
   };
 }
 
+/** The school's timezone; "today" for events means today here, not wherever the server happens to run. */
+const SCHOOL_TIMEZONE = process.env.SCHOOL_TIMEZONE || "Asia/Kolkata";
+
+/**
+ * Today's date in the school's timezone, as UTC midnight. Event dates are saved as calendar days at UTC midnight
+ * (the admin sends "YYYY-MM-DD"), so this compares like with like on any server — a UTC host no longer treats
+ * yesterday's events as upcoming between midnight and 5:30 am IST.
+ */
 function startOfToday() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date;
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: SCHOOL_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return new Date(`${day}T00:00:00.000Z`);
 }
