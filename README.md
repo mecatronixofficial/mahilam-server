@@ -64,7 +64,7 @@ The server, Prisma client and Vercel entry point use native ES modules. Nest pac
 1. Import this repo as a Vercel project (root: this folder). `vercel.json` sets the build and output, so no framework preset is needed.
 2. Set the environment variables from `.env.example`. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `FRONTEND_URL` and `CRON_SECRET`. Use a pooled database URL and `DATABASE_POOL_MAX=1`-`3`.
 3. Run migrations against the production database from your machine or CI: `DATABASE_URL=... bun run prisma:deploy` (and `prisma:seed` once). Builds do not migrate.
-4. Give the API and the frontend custom domains on the same site, for example `api.littlemahilam.in` and `littlemahilam.in`. The session cookies are `SameSite=Lax` and host-only, and `*.vercel.app` counts as a separate site per project, so CMS/CRM sign-in does not work between two `vercel.app` URLs (the public website does).
+4. The frontend sends browser requests through its own `/api/v1` proxy. Set its `API_URL_INTERNAL` (or existing `NEXT_PUBLIC_API_URL` fallback) to this backend's complete URL, such as `https://mahilam-server.vercel.app/api/v1`, then redeploy the frontend. Cookies remain HTTP-only, Secure and `SameSite=Lax` on the frontend host, so CMS/CRM sign-in works across separate Vercel projects. Set this backend's `FRONTEND_URL` to the frontend origin, such as `https://mahilam-ui.vercel.app`. Verify `/api/v1/health` on the frontend returns JSON before testing sign-in.
 
 Limits to know: request bodies are capped at 4.5 MB on Vercel (below the 5 MB image-upload limit), requests time out after 30 s (`maxDuration`), and the in-memory public cache and rate limits are per function instance.
 
